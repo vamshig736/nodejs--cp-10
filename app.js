@@ -56,7 +56,7 @@ function authenticateToken(request, response, next) {
   } else {
     jwt.verify(jwtToken, "My_SECRET_TOKEN", async (error, payload) => {
       if (error) {
-        response.send(401);
+        response.status(401);
         response.send("Invalid JWT Token");
       } else {
         next();
@@ -65,7 +65,7 @@ function authenticateToken(request, response, next) {
   }
 }
 
-app.post("/login", async (request, response) => {
+app.post("/login/", async (request, response) => {
   let { username, password } = request.body;
   let checkTheUsername = `
             SELECT *
@@ -78,7 +78,7 @@ app.post("/login", async (request, response) => {
   } else {
     const isPasswordMatched = await bcrypt.compare(password, userData.password);
     if (isPasswordMatched === true) {
-      const playload = { username: username };
+      const payload = { username: username };
       const jwtToken = jwt.sign(payload, "MY_SECRET_TOKEN");
       response.send({ jwtToken });
     } else {
@@ -99,7 +99,7 @@ app.get("/states/", authenticateToken, async (request, response) => {
   );
 });
 ////
-app.get("/states/:stateId", authenticateToken, async (request, response) => {
+app.get("/states/:stateId/", authenticateToken, async (request, response) => {
   const { stateId } = request.params;
   const getStateQuery = `
 SELECT * FROM state WHERE state_id=${stateId}:`;
