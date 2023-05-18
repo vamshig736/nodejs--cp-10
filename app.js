@@ -54,7 +54,7 @@ function authenticateToken(request, response, next) {
     response.status(401);
     response.send("Invalid JWT Token");
   } else {
-    jwt.verify(jwtToken, "My_SECRET_TOKEN", async (error, payload) => {
+    jwt.verify(jwtToken, "MY_SECRET_TOKEN", async (error, payload) => {
       if (error) {
         response.status(401);
         response.send("Invalid JWT Token");
@@ -102,43 +102,36 @@ app.get("/states/", authenticateToken, async (request, response) => {
 app.get("/states/:stateId/", authenticateToken, async (request, response) => {
   const { stateId } = request.params;
   const getStateQuery = `
-SELECT * FROM state WHERE state_id=${stateId}:`;
+SELECT * FROM state WHERE state_id=${stateId}`;
   const state = await db.get(getStateQuery);
   response.send(convertStateObjectsToResponseObjects(state));
 });
 ///
 app.get(
-  "/districts/:districtId",
+  "/districts/:districtId/",
   authenticateToken,
   async (request, response) => {
     const { districtId } = request.params;
     const getDistrictQuery = `
-SELECT * FROM district WHERE district_id=${districtId}:`;
-    const district = await db.get(getStateQuery);
+SELECT * FROM district WHERE district_id=${districtId}`;
+    const district = await db.get(getDistrictQuery);
     response.send(convertDistrictObjectsToResponseObjects(district));
   }
 );
 ///
 app.post("/districts/", authenticateToken, async (request, response) => {
-  const {
-    stateId,
-    districtName,
-    cases,
-    cured,
-    active,
-    deaths,
-  } = request.params;
+  const { districtName, stateId, cases, cured, active, deaths } = request.body;
   const postDistrictQuery = `
-INSERT INTO district (state_id,district_name,cases,cured,active,deaths)
+INSERT INTO district (district_name,state_id,cases,cured,active,deaths)
 VALUES (
-    ${stateId},
     '${districtName}',
+    ${stateId},
     ${cases},
     ${cured},
     ${active},
     ${deaths}
 )`;
-  const district = await db.run(getStateQuery);
+  await db.run(postDistrictQuery);
   response.send("District Successfully Added");
 });
 
@@ -170,15 +163,15 @@ app.put(
     const updateDistrictQuery = `
     UPDATE district
     SET 
-    district_name='${districtName}
-    state_id='${stateId}',
+    district_name='${districtName}',
+    state_id=${stateId},
     cases=${cases},
     cured=${cured},
     active=${active},
     deaths=${deaths}
     WHERE district_id=${districtId}`;
-    await db.run(updateDistrictQuery);
-    response.send("District Deatils Updated");
+    const dbresponse = await db.run(updateDistrictQuery);
+    response.send("District Details Updated");
   }
 );
 ///
@@ -187,18 +180,17 @@ app.get(
   authenticateToken,
   async (request, response) => {
     const { stateId } = request.params;
-    const getStateQuery = `
-SELECT SUM(cases),
-Sum(cured),
-SUM(active),
-SUM(deaths) FROM district WHERE state_id=${stateId}:`;
-    const state = await db.get(getStateQuery);
-    response.send({
-      totalCases: stats["SUM(cases)"],
-      totalCured: stats["SUM(cured)"],
-      totalActive: stats["SUM(active)"],
-      totalDeaths: stats["SUM(deaths)"],
-    });
+    const getStateStatesQuery = `
+    SELECT 
+    SUM(cases) as totalCases,
+    SUM(cured) as totalCured,
+    SUM(active) as totalActive,
+    SUM(deaths) as totalDeaths
+    FROM 
+    district
+    WHERE state_id=${stateId}`;
+    const state = await db.get(getStateStatesQuery);
+    response.send(state);
   }
 );
 module.exports = app;
